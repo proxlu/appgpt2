@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "org.proxlu.appgpt2",
+  "variantName": "AppGPT2",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "attributes": [],
+      "versionCode": 16,
+      "versionName": "2.0",
+      "outputFile": "AppGPT2.apk"
+    }
+  ],
+  "elementType": "File"
+}
