@@ -1,5 +1,6 @@
 package org.proxlu.appgpt2;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -21,16 +22,16 @@ import android.widget.TextView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MainActivity extends Activity {
 
     private WebView chatWebView = null;
     private TextView errorTextView = null; // Adicionei a declaração da variável errorTextView
-    private WebSettings chatWebSettings = null; // Removi a segunda declaração desta variável
     private CookieManager chatCookieManager = null;
     private final Context context = this;
-    private String TAG = "AppGPT2";
-    private String urlToLoad = "https://talkai.info/pt/chat";
+    private final String TAG = "AppGPT2";
+    private final String urlToLoad = "https://talkai.info/pt/chat";
 
     private static final ArrayList<String> allowedDomains = new ArrayList<>();
 
@@ -45,6 +46,7 @@ public class MainActivity extends Activity {
         super.onResume();
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -73,13 +75,20 @@ public class MainActivity extends Activity {
         initURLs();
 
         chatWebView.setWebViewClient(new WebViewClient() {
-            @SuppressWarnings("deprecation") // Para suprimir avisos sobre uso de método obsoleto
+            // Para suprimir avisos sobre uso de método obsoleto
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 super.onReceivedError(view, errorCode, description, failingUrl);
                 // Esconder WebView e mostrar a mensagem de erro
                 chatWebView.setVisibility(View.GONE);
                 errorTextView.setVisibility(View.VISIBLE);
+
+                // Verificar se o erro é causado pelo name resolution
+                if (errorCode == -2) {
+                    // Mostrar uma mensagem de erro personalizada
+                    String message = "Erro ao carregar a página: " + "O nome de domínio não pode ser resolvido.";
+                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                }
             }
             // Keep these in sync!
             @Override
@@ -93,7 +102,7 @@ public class MainActivity extends Activity {
                 }
                 boolean allowed = false;
                 for (String url : allowedDomains) {
-                    if (request.getUrl().getHost().endsWith(url)) {
+                    if (Objects.requireNonNull(request.getUrl().getHost()).endsWith(url)) {
                         allowed = true;
                     }
                 }
@@ -119,7 +128,7 @@ public class MainActivity extends Activity {
                 }
                 boolean allowed = false;
                 for (String url : allowedDomains) {
-                    if (request.getUrl().getHost().endsWith(url)) {
+                    if (Objects.requireNonNull(request.getUrl().getHost()).endsWith(url)) {
                         allowed = true;
                     }
                 }
@@ -139,7 +148,8 @@ public class MainActivity extends Activity {
         errorTextView = findViewById(R.id.errorTextView);
         errorTextView.setVisibility(View.GONE);
         // Set more options
-        chatWebSettings = chatWebView.getSettings();
+        // Removi a segunda declaração desta variável
+        WebSettings chatWebSettings = chatWebView.getSettings();
         // Enable some WebView features
         chatWebSettings.setJavaScriptEnabled(true);
         chatWebSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -154,26 +164,23 @@ public class MainActivity extends Activity {
         chatWebSettings.setGeolocationEnabled(false);
 
         //Set copy image functionality
-        chatWebView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                WebView.HitTestResult result = chatWebView.getHitTestResult();
-                if (result.getType() == WebView.HitTestResult.IMAGE_TYPE) {
-                    String imgUrl = result.getExtra();
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("Image URL", imgUrl);
-                    clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, "Imagem copiada", Toast.LENGTH_SHORT).show();
-                    return true;
-                }
-                return false;
+        chatWebView.setOnLongClickListener(v -> {
+            WebView.HitTestResult result = chatWebView.getHitTestResult();
+            if (result.getType() == WebView.HitTestResult.IMAGE_TYPE) {
+                String imgUrl = result.getExtra();
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Image URL", imgUrl);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(context, "Imagem copiada", Toast.LENGTH_SHORT).show();
+                return true;
             }
+            return false;
         });
 
         // Load ChatGPT
         chatWebView.loadUrl(urlToLoad);
         if (GithubStar.shouldShowStarDialog(this))
-            GithubStar.starDialog(this, "https://github.com/proxlu/AppGPT");
+            GithubStar.starDialog(this);
 
         // Editar o texto do placeholder do textarea
         chatWebView.setWebViewClient(new WebViewClient() {
@@ -197,14 +204,13 @@ public class MainActivity extends Activity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         // Credit (CC BY-SA 3.0): https://stackoverflow.com/a/6077173
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            switch (keyCode) {
-                case KeyEvent.KEYCODE_BACK:
-                    if (chatWebView.canGoBack() && !chatWebView.getUrl().equals("about:blank")) {
-                        chatWebView.goBack();
-                    } else {
-                        finish();
-                    }
-                    return true;
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (chatWebView.canGoBack() && !chatWebView.getUrl().equals("about:blank")) {
+                    chatWebView.goBack();
+                } else {
+                    finish();
+                }
+                return true;
             }
         }
         return super.onKeyDown(keyCode, event);

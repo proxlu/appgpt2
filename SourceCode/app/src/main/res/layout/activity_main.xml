@@ -12,7 +12,7 @@
         android:id="@+id/errorTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Erro"
+        android:text="@string/erro"
         android:textSize="18sp"
         android:textColor="@android:color/black"
         android:textStyle="bold" />
